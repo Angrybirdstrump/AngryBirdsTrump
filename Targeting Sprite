@@ -1,0 +1,141 @@
+Steps to Include Donald Trump or any other characters as a Target Sprite
+
+1. Download or Create a Sprite:
+Obtain a transparent PNG image of Donald Trump to use as the target.
+Name the file trump.png and place it in the same directory as your Python script.
+
+2 . Update the Code
+Add functionality to load and render the sprite.
+Replace the blocks with the sprite image while retaining physics interactions.
+
+import pygame
+import pymunk
+import pymunk.pygame_util
+import math
+
+# Initialize Pygame and Pymunk
+pygame.init()
+screen = pygame.display.set_mode((800, 600))
+pygame.display.set_caption("Angry Birds-Inspired Game with Trump Target")
+clock = pygame.time.Clock()
+space = pymunk.Space()
+space.gravity = (0, 900)  # Gravity (x, y)
+draw_options = pymunk.pygame_util.DrawOptions(screen)
+
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+
+# Load the Trump sprite
+trump_sprite = pygame.image.load("trump.png")
+trump_sprite = pygame.transform.scale(trump_sprite, (50, 50))  # Resize sprite
+
+# Create the floor
+def create_floor():
+    body = pymunk.Body(body_type=pymunk.Body.STATIC)
+    body.position = (400, 580)
+    shape = pymunk.Segment(body, (-400, 0), (400, 0), 5)
+    shape.elasticity = 0.8
+    space.add(body, shape)
+
+# Create a target with Trump sprite
+def create_trump_target(position):
+    body = pymunk.Body(5, pymunk.moment_for_box(5, (50, 50)))
+    body.position = position
+    shape = pymunk.Poly.create_box(body, (50, 50))
+    shape.elasticity = 0.5
+    shape.friction = 0.8
+    space.add(body, shape)
+    return body, shape
+
+# Create a projectile (bird)
+def create_projectile(position):
+    body = pymunk.Body(1, pymunk.moment_for_circle(1, 0, 15))
+    body.position = position
+    shape = pymunk.Circle(body, 15)
+    shape.elasticity = 0.5
+    shape.friction = 0.5
+    space.add(body, shape)
+    return body, shape
+
+# Draw slingshot line
+def draw_slingshot_line(screen, start, end):
+    pygame.draw.line(screen, BLACK, start, end, 3)
+
+# Draw the Trump sprite
+def draw_trump_target(screen, body):
+    x, y = body.position
+    angle = body.angle
+    rotated_sprite = pygame.transform.rotate(trump_sprite, math.degrees(-angle))
+    rect = rotated_sprite.get_rect(center=(x, y))
+    screen.blit(rotated_sprite, rect)
+
+# Initialize the game
+create_floor()
+targets = [create_trump_target((600, 500)), create_trump_target((650, 450))]
+projectile = None
+slingshot_anchor = (150, 400)
+is_dragging = False
+
+# Game loop
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+        # Start dragging the projectile
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if projectile is None:
+                projectile, shape = create_projectile(slingshot_anchor)
+                is_dragging = True
+
+        # Release the projectile
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            if is_dragging and projectile:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                dx = slingshot_anchor[0] - mouse_x
+                dy = slingshot_anchor[1] - mouse_y
+                force = (dx * 10, dy * 10)
+                projectile.apply_impulse_at_local_point(force)
+                is_dragging = False
+
+    # Clear screen
+    screen.fill((135, 206, 235))  # Light blue background
+
+    # Draw floor, blocks, and physics objects
+    space.debug_draw(draw_options)
+
+    # Draw the Trump targets
+    for target_body, target_shape in targets:
+        draw_trump_target(screen, target_body)
+
+    # Draw slingshot line
+    if is_dragging and projectile:
+        mouse_pos = pygame.mouse.get_pos()
+        draw_slingshot_line(screen, slingshot_anchor, mouse_pos)
+
+    # Update physics
+    space.step(1 / 50.0)
+
+    # Draw instructions
+    font = pygame.font.SysFont("Arial", 20)
+    instructions = font.render("Drag and release the slingshot to hit the Trump targets!", True, BLACK)
+    screen.blit(instructions, (10, 10))
+
+    pygame.display.flip()
+    clock.tick(60)
+
+pygame.quit()
+
+What’s New in This Version?
+1. Custom Sprite
+The trump.png sprite is used as the target. The image rotates dynamically based on the target's physics body.
+
+2. Multiple Targets
+Added multiple targets represented by Trump sprites.
+
+3. Dynamic Interactions
+The sprites are affected by physics (e.g., projectiles knock them over).
+
