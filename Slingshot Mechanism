@@ -1,0 +1,122 @@
+1. Slingshot Mechanism:
+
+You can drag and release a projectile to simulate a slingshot.
+The slingshot applies a force based on how far you drag.
+
+2. Physics:
+The game uses Pymunk for realistic physics (gravity, collisions, and elastic impacts).
+
+3. Blocks as Targets:
+Static blocks are placed as targets. The projectile interacts with them realistically.
+
+4. Visual Debugging:
+Pymunk's debug drawing shows the shapes of all physics objects.
+
+
+import pygame
+import pymunk
+import pymunk.pygame_util
+import math
+
+# Initialize Pygame and Pymunk
+pygame.init()
+screen = pygame.display.set_mode((800, 600))
+pygame.display.set_caption("Angry Birds-Inspired Game")
+clock = pygame.time.Clock()
+space = pymunk.Space()
+space.gravity = (0, 900)  # Gravity (x, y)
+draw_options = pymunk.pygame_util.DrawOptions(screen)
+
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+
+# Create the floor
+def create_floor():
+    body = pymunk.Body(body_type=pymunk.Body.STATIC)
+    body.position = (400, 580)
+    shape = pymunk.Segment(body, (-400, 0), (400, 0), 5)
+    shape.elasticity = 0.8
+    space.add(body, shape)
+
+# Create a block (target)
+def create_block(position):
+    body = pymunk.Body(5, pymunk.moment_for_box(5, (50, 50)))
+    body.position = position
+    shape = pymunk.Poly.create_box(body, (50, 50))
+    shape.elasticity = 0.5
+    shape.friction = 0.8
+    space.add(body, shape)
+    return shape
+
+# Create a projectile (bird)
+def create_projectile(position):
+    body = pymunk.Body(1, pymunk.moment_for_circle(1, 0, 15))
+    body.position = position
+    shape = pymunk.Circle(body, 15)
+    shape.elasticity = 0.5
+    shape.friction = 0.5
+    shape.color = RED
+    space.add(body, shape)
+    return body, shape
+
+# Draw slingshot line
+def draw_slingshot_line(screen, start, end):
+    pygame.draw.line(screen, BLACK, start, end, 3)
+
+# Initialize the game
+create_floor()
+blocks = [create_block((600, 500)), create_block((650, 450))]
+projectile = None
+slingshot_anchor = (150, 400)
+is_dragging = False
+
+# Game loop
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+        # Start dragging the projectile
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if projectile is None:
+                projectile, shape = create_projectile(slingshot_anchor)
+                is_dragging = True
+
+        # Release the projectile
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            if is_dragging and projectile:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                dx = slingshot_anchor[0] - mouse_x
+                dy = slingshot_anchor[1] - mouse_y
+                force = (dx * 10, dy * 10)
+                projectile.apply_impulse_at_local_point(force)
+                is_dragging = False
+
+    # Clear screen
+    screen.fill((135, 206, 235))  # Light blue background
+
+    # Draw floor, blocks, and physics objects
+    space.debug_draw(draw_options)
+
+    # Draw slingshot line
+    if is_dragging and projectile:
+        mouse_pos = pygame.mouse.get_pos()
+        draw_slingshot_line(screen, slingshot_anchor, mouse_pos)
+
+    # Update physics
+    space.step(1 / 50.0)
+
+    # Draw instructions
+    font = pygame.font.SysFont("Arial", 20)
+    instructions = font.render("Drag and release the slingshot to shoot!", True, BLACK)
+    screen.blit(instructions, (10, 10))
+
+    pygame.display.flip()
+    clock.tick(60)
+
+pygame.quit()
